@@ -1,0 +1,53 @@
+{
+  "cli_version": "dev",
+  "checkpoint_id": "d7e0a7c58116",
+  "session_id": "ses_1e5873eeaffel4o2lTenAPofkc",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-13T06:33:01.237433Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "cmd/entire/cli/prompts/index/rank_test.go"
+  ],
+  "agent": "OpenCode",
+  "model": "minimax-m2.5-free",
+  "turn_id": "ee75ce41a538",
+  "checkpoint_transcript_start": 279,
+  "token_usage": {
+    "input_tokens": 54866,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 489792,
+    "output_tokens": 1305,
+    "api_call_count": 6
+  },
+  "session_metrics": {
+    "turn_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-13T06:33:01.077922Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 7,
+    "total_committed": 0,
+    "total_lines_changed": 7,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 7,
+      "user_lines_removed": 7,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "cmd/entire/cli/prompts/index/rank_test.go": 7
+      },
+      "user_removed_per_file": {
+        "cmd/entire/cli/prompts/index/rank_test.go": 7
+      }
+    }
+  ]
+}
