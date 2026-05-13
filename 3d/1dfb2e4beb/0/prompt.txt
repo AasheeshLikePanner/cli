@@ -1,0 +1,796 @@
+read the project and architecutre feature
+
+---
+
+so what is mainly missing in this what is lefting for the tool and the other have and this not
+
+---
+
+check there roadmap or check other things that are left that hte its compititor has but its not has
+
+---
+
+does it support the antigraviy idea? if not then this is hte gap taht we can implement in it
+
+---
+
+i mean it supporting the cursor so we can implement the antigravity am i right if not then find something we can contribtute no slop or something from there roadmap i want the job
+
+---
+
+man not fix i wnatto implement something like you saying hte it supporting hte curosr windsurf and it implemetning the kiro now the antigravity missing the chekcpoint remote searchable prompt features and intent review knowledge base this are missing we should implement it
+
+---
+
+i want to something tht is in there roamdp or we can improve the things man there current system not like slop and not something the thing is already in rpogress thats why i want you to go in rpgoress
+
+---
+
+so first do onething create the whole context and write the md file so we can see the problem what we want to do what already prestne there product tool ok and what is yoursolution edge casess and also research about the best algo or the best method the architecture pipeline for this and build so i can review it ok and add the context and aslo write the about there roadmp what they want to achive and the statu salso tell me the staut the intent review and searchable prompts both or presnet or not and there status is already started or currently progress so it dont waaster our time
+
+---
+
+before moving forwad chekc is this the 2 searh and intnet is not already in progress or someone working no
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+so what we going to first hte search pormpt orhte other which best
+
+---
+
+giv eme the link of the roadmap that the search roadmap
+
+---
+
+so basically where they write the abo thte roadmpa man which thing we can work on or what we can do man or there roadmpa they working on and future things
+
+---
+
+so udpate hte feature requet wirte only for searchable prompts write everything in it the full flow how things going to work what approaches we hae what we choose tradeoff algo adnhownthings working and the benchmark and other htings and what our current architecture is
+
+---
+
+continue
+
+---
+
+feature request template does they have this so we can create the issue before creating the pr like teh jira ticket so they know what i want o to timpleet and design and everything
+
+---
+
+before doing all this setup the project the run the rpoject and test everything working fine and running fine or not
+
+---
+
+forget everything
+
+---
+
+feature request template does they have this so we can create the issue before creating the pr like teh jira ticket so they know what i want o to timpleet and design and everything
+
+---
+
+# Feature Proposal: `entire prompts search` — Searchable Prompt History
+
+**Roadmap:** https://entire.io/blog/the-entire-cli-how-it-works-and-where-its-headed  
+**Status:** Not shipped, not in progress  
+**Updated:** May 2026
+
+---
+
+## 1. Problem Statement
+
+> "We're making that answer searchable. Users will be able to surface the prompt that introduced a workaround or revisit the reasoning behind a library choice months later. The 'why' will be part of your history." — Entire Roadmap
+
+Developers can search **what changed** (`git blame`, `grep`) but cannot search **why it changed** — the prompts and reasoning behind decisions. Today that context lives in closed terminal sessions and disappears on close.
+
+**Example:** "Why did we pick Redis over Memcached?"
+- `grep redis` → finds usage, not decision
+- `git blame` → shows who changed it, not why
+- Slack / Notion → fragmented, not tied to commits
+- Ask teammates → unreliable, doesn't scale
+
+**With searchable prompts:**
+```
+$ entire prompts search "cache decision"
+→ "Why did we choose Redis over Memcached?"   a3b2c4d5e6f7  2026-03-15  Claude Code
+→ "Add Redis caching for session store"        7f8e9d1a2b3c  2026-04-02  Gemini CLI
+```
+
+---
+
+## 2. Roadmap Alignment
+
+| Feature | Status | Roadmap Section |
+|---|---|---|
+| **Searchable Prompts** | NOT SHIPPED | "Search" — surfacing the prompt that introduced a workaround |
+| Intent Review | NOT SHIPPED | "Rethinking Code Review to Intent Review" |
+| Team Visibility | NOT SHIPPED | "Team Visibility" |
+| Audit & Transparency | Partial | Line-level attribution exists |
+
+This proposal covers **only Searchable Prompts**. Intent review and team visibility are separate tracks.
+
+---
+
+## 3. Current Architecture
+
+### What Already Exists
+
+```
+Checkpoint Condensation
+      ↓
+GitStore.WriteCommitted()
+      ↓
+entire/checkpoints/v1 branch
+      ↓
+<checkpoint-id[:2]>/<checkpoint-id[2:]>/
+├── metadata.json           # CheckpointSummary (no prompts)
+├── 0/                      # Session 0
+│   ├── metadata.json       # CommittedMetadata
+│   ├── full.jsonl          # Full transcript
+│   └── prompt.txt          # User prompts (multi-turn, split by "---\n\n")
+├── 1/                      # Session 1 (multi-session)
+...
+```
+
+**Key types (`checkpoint/checkpoint.go`):**
+```go
+type CheckpointSummary struct {
+    CheckpointID  id.CheckpointID
+    Sessions      []SessionFilePaths
+    FilesTouched  []string
+    HasReview     bool
+}
+
+type CommittedMetadata struct {
+    SessionID        string
+    Agent            types.AgentType
+    Model            string
+    CreatedAt        time.Time
+    CheckpointsCount int
+    Kind             string   // "session" | "agent_review"
+    ReviewSkills     []string
+    ReviewPrompt     string   // NOTE: agent review prompts also live here
+}
+```
+
+**Key reading methods (`checkpoint/committed.go`):**
+- `GitStore.ListCommitted()` — scans all checkpoint dirs, reads metadata
+- `GitStore.ReadSessionContent(ctx, cpID, sessionIndex)` — reads specific session including prompt.txt
+- `GitStore.ReadLatestSessionContent()` — reads most recent session
+
+**Key reading methods (`strategy/common.go`):**
+- `ReadAllSessionPromptsFromTree()` — reads all session prompts (multi-session aware)
+- `ExtractFirstPrompt()` — extracts first non-empty turn from prompt.txt
+
+**Sharding:** Checkpoint IDs sharded into 256 buckets via first 2 hex chars. Path: `a3/b2c4d5e6f7/`.
+
+### What's Missing
+
+- No CLI command exposing prompt text to users
+- No search index — every query would need a full git tree walk
+- No ranking — no relevance scoring over results
+- Existing `entire search` hits an external API for code/diffs; prompts are local and offline-first
+
+---
+
+## 4. Design Goals
+
+1. **Offline-first** — works without internet, no external API dependency
+2. **Git-native** — leverages existing `entire/checkpoints/v1` branch, no new storage layer
+3. **Zero config** — works immediately after `entire enable`, no setup required
+4. **Incrementally updated** — index written at condensation time, never requires a full rebuild in steady state
+5. **Fast queries** — sub-200ms for 10K checkpoints
+6. **Privacy-preserving** — uses only the already-redacted prompt content from checkpoint storage
+
+---
+
+## 5. What This Proposal Does NOT Cover
+
+To be explicit about scope:
+- No cross-repo search (Phase 3+)
+- No semantic/embedding search (Phase 3+)
+- No integration with the web platform (separate feature)
+- No multi-language stop words (English only in Phase 1)
+- No real-time index — index is commit-time only
+
+---
+
+## 6. Implementation Approach
+
+### Approach Comparison
+
+| | A: On-demand scan | B: In-memory (query time) | **C: Persistent local index** | D: SQLite FTS5 | E: Cloud API |
+|---|---|---|---|---|---|
+| Offline | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Fast queries | ❌ 50s/1K | ⚠️ slow cold start | ✅ | ✅ | ✅ |
+| Incremental | ✅ | ❌ | ✅ | ✅ | ✅ |
+| No new deps | ✅ | ✅ | ✅ | ❌ CGO | ✅ |
+| Persistent | ✅ | ❌ | ✅ | ✅ | ✅ |
+
+**Chosen: Approach C — Persistent Local Index**
+
+A persistent index stored as newline-delimited JSON (`.ndjson`) in `.entire/prompts/index.ndjson`, updated incrementally at condensation time via the PostCommit hook.
+
+**Why `.ndjson` over `.json.gz`:**
+gzip is a stream format — you cannot append to it. Every update would require read → decompress → deserialize → modify → compress → rewrite the entire file. `.ndjson` is truly appendable: new entries are written as a single line append. No full rewrites, no decompression overhead. At 5MB for 10K checkpoints, compression is not necessary.
+
+---
+
+## 7. Index Design
+
+### File Location
+
+```
+.entire/prompts/index.ndjson    # gitignored, local to this checkout
+```
+
+**Decoupled repo support:** When checkpoints are stored in a separate repository (`checkpoint.remote` config), the index lives alongside the checkpoints — in that repo's working directory — not in the main repo. `IndexPath()` reads the checkpoint store config before resolving.
+
+**Multi-worktree support:** Each worktree has its own `.git` directory. The index lives at `<worktree-git-dir>/../.entire/prompts/index.ndjson`, not at the repo root, so concurrent worktrees have independent indexes that don't collide.
+
+### Schema
+
+Each line in the `.ndjson` file is one JSON object:
+
+```go
+type PromptEntry struct {
+    // Identity
+    CheckpointID    string    `json:"checkpoint_id"`    // "a3b2c4d5e6f7"
+    SessionIndex    int       `json:"session_index"`    // 0, 1, 2 (multi-session)
+    TurnIndex       int       `json:"turn_index"`       // 0, 1, 2 (multi-turn within session)
+    Kind            string    `json:"kind"`             // "session" | "agent_review"
+
+    // Prompt content
+    PromptText      string    `json:"prompt_text"`      // truncated to 2000 chars
+    PromptTruncated bool      `json:"prompt_truncated"` // true if original was longer
+
+    // Git context
+    CommitHash      string    `json:"commit_hash"`      // git commit SHA
+    CommitMessage   string    `json:"commit_message"`   // first line only
+    Branch          string    `json:"branch"`           // branch at commit time
+
+    // Agent metadata
+    Agent           string    `json:"agent"`            // "Claude Code"
+    Model           string    `json:"model"`            // "claude-sonnet-4-20250514"
+    TokenCount      int       `json:"token_count"`      // from CommittedMetadata
+
+    // Subagent context
+    ParentCheckpointID string `json:"parent_checkpoint_id,omitempty"` // set for subagents
+    SubagentDepth      int    `json:"subagent_depth"`                 // 0 = top-level
+
+    // Useful for filtering
+    FilesTouched    []string  `json:"files_touched"`
+    CreatedAt       time.Time `json:"created_at"`
+}
+
+// Index header — first line of the file
+type IndexHeader struct {
+    Version   int       `json:"version"`    // format version (1)
+    CreatedAt time.Time `json:"created_at"`
+    RepoRoot  string    `json:"repo_root"`  // sanity check on load
+}
+```
+
+**Why `TurnIndex` matters:** `prompt.txt` stores multi-turn conversations separated by `"---\n\n"`. Each turn is indexed as a separate `PromptEntry` (same `CheckpointID`, incrementing `TurnIndex`). This ensures "Why did we choose Redis?" matches even if it appears in turn 3 of a 5-turn session, not just in the first message.
+
+**Why `ReviewPrompt` is included:** `CommittedMetadata.ReviewPrompt` holds the prompt used for agent reviews (`kind: "agent_review"`). These prompts represent intent just as much as user prompts do and should be searchable. They are indexed with `Kind: "agent_review"` so users can filter them.
+
+**Why `CommitHash` and `CommitMessage`:** These link a search result back to the actual git commit, enabling `git show <hash>` or navigation to the diff. Without them, a search result has no path back to the code change it produced.
+
+**Why `TokenCount`:** Entire already tracks token usage per session. Surfacing it in search results (and eventually in team visibility) is zero-cost since the data exists.
+
+### Index Version Migration
+
+```go
+const CurrentIndexVersion = 1
+
+func LoadIndex(path string) (*PromptIndex, error) {
+    // Read header (first line)
+    if header.Version < CurrentIndexVersion {
+        return nil, ErrIndexVersionMismatch // triggers rebuild
+    }
+    if header.Version > CurrentIndexVersion {
+        return nil, ErrIndexTooNew // CLI needs update
+    }
+    // ...
+}
+```
+
+On `ErrIndexVersionMismatch`, the CLI deletes the old index and triggers a full rebuild automatically.
+
+---
+
+## 8. Concurrent Write Safety
+
+The existing architecture supports concurrent sessions (two agents in the same repo simultaneously). Two simultaneous PostCommit hooks writing to the index file without coordination will silently overwrite each other.
+
+**Solution: advisory file lock**
+
+```go
+func (s *IndexStore) AppendEntry(entry PromptEntry) error {
+    lock, err := lockfile.New(s.LockPath()) // .entire/prompts/index.lock
+    if err != nil {
+        return err
+    }
+    if err := lock.TryLock(); err != nil {
+        // Another hook is writing; retry with backoff (max 3 attempts, 50ms apart)
+        return s.retryAppend(entry, 3)
+    }
+    defer lock.Unlock()
+    return s.appendLine(entry)
+}
+```
+
+**NFS note:** `flock` is unreliable on NFS-mounted `.git` directories. We detect NFS mounts via `statfs` and fall back to a `.lock` file with a PID-based ownership check, same pattern used by git itself.
+
+---
+
+## 9. Search Algorithm
+
+### Tokenizer
+
+```go
+func Tokenize(text string) []string {
+    // 1. Unicode normalization (NFC) — "café" == "cafe\u0301" after normalize
+    normalized := norm.NFC.String(strings.ToLower(text))
+    // 2. Split on non-word characters
+    tokens := wordBoundary.Split(normalized, -1)
+    // 3. Stem each token (Porter stemmer, pure Go, no CGO)
+    //    "caching" → "cache", "authenticated" → "authent", "decisions" → "decis"
+    stemmed := make([]string, 0, len(tokens))
+    for _, t := range tokens {
+        if len(t) < 2 { continue }           // skip single chars
+        if stopWords[t] { continue }          // skip stop words
+        stemmed = append(stemmed, stem.Stem(t))
+    }
+    return stemmed
+}
+```
+
+**Stemmer:** `github.com/kljensen/snowball` — pure Go, zero CGO, MIT licensed. Not currently a dependency; adding it is a single `go get`.
+
+**Why stemming matters for recall:**
+- `"caching"` → stems to `"cach"` → matches prompt containing `"cache"`, `"cached"`, `"caches"`
+- `"authenticated"` → stems to `"authent"` → matches `"auth"`, `"authentication"`
+- Without stemming roughly 30–40% of valid matches return zero results
+
+### Scoring
+
+Weighted keyword scoring with term-density normalization. This is **not** BM25 (which requires IDF across a corpus). It is honest keyword scoring appropriate for a local index of this size:
+
+```
+TermDensity = matched_token_count / total_prompt_token_count
+
+Score = (exact_phrase_match * 10)
+      + (all_query_tokens_found * 5)
+      + (any_query_token_found * 1)
+      + (TermDensity * 2)        ← prevents long prompts from dominating
+```
+
+**Result ordering within same score tier:** newer `CreatedAt` first.
+
+**Minimum query length:** Queries shorter than 2 characters after tokenization return an error: `"query too short — enter at least one word"`. This prevents accidental full-index scans from single-char queries.
+
+**Special character handling:** Query strings are stripped of regex metacharacters (`$`, `*`, `.`, `+`, `?`, `(`, `)`, `[`, `]`, `{`, `}`, `^`, `|`, `\`) before tokenization. They are not interpreted as patterns. This prevents panics and confusing zero-result queries.
+
+**Quoted phrase handling:** `"redis cache"` is parsed as a phrase and matched as an adjacent sequence in the stemmed token stream. Phrase matches score as `exact_phrase_match`.
+
+---
+
+## 10. Cold Start and Index Rebuild
+
+**The problem:** On first install, or when a user points Entire at an existing repo with hundreds of checkpoints, the index doesn't exist. The current proposal falls back to on-demand git tree scan which takes ~50s for 1000 checkpoints — an unusable first experience.
+
+**Solution: explicit rebuild command with progress**
+
+```
+$ entire prompts index --rebuild
+Building prompt index from 847 checkpoints...
+████████████████████░░░░  780/847  (92%)  ETA 3s
+
+Done. Indexed 1,623 prompts from 847 checkpoints.
+Index written to .entire/prompts/index.ndjson (412 KB)
+```
+
+The rebuild command:
+1. Walks `entire/checkpoints/v1` tree in the git object store
+2. Reads each session's `prompt.txt` (multi-turn aware)
+3. Reads `ReviewPrompt` from `metadata.json` where `kind == "agent_review"`
+4. Writes a fresh `index.ndjson` atomically (temp file + rename)
+
+**Auto-trigger on first search:** If the index is missing and the user runs `entire prompts search`, the CLI triggers a rebuild automatically with a one-line notice: `"Building prompt index for the first time..."`. Subsequent queries are fast.
+
+**`entire prompts index` subcommands:**
+
+```
+entire prompts index --rebuild    # full rebuild from git tree
+entire prompts index --status     # show index health and stats
+entire prompts index --verify     # check all indexed checkpoint IDs still exist in git
+```
+
+`--status` output:
+```
+Prompt index status
+  Location:    .entire/prompts/index.ndjson
+  Version:     1
+  Checkpoints: 847
+  Prompts:     1,623  (includes multi-turn turns)
+  Size:        412 KB
+  Last updated: 2026-05-10 14:32:01
+  Orphaned:    0  (checkpoint IDs in index not found in git)
+```
+
+---
+
+## 11. Command Interface
+
+### `entire prompts search <query>`
+
+```
+entire prompts search <query>
+entire prompts search "redis cache"          # exact phrase
+entire prompts search --limit 50             # default 20
+entire prompts search --json                 # structured output
+entire prompts search --agent claude         # filter by agent
+entire prompts search --branch feat/auth     # filter by branch
+entire prompts search --after 2026-03-01     # filter by date
+entire prompts search --files cache/redis.go # filter by file touched
+entire prompts search --kind session         # session | agent_review | all (default: all)
+```
+
+**Output:**
+```
+Search results for "redis cache"  (23 found, showing 20)
+
+  a3b2c4d5e6f7  2026-03-15  Claude Code  main
+  "Why did we choose Redis over Memcached for the caching layer?"
+
+  7f8e9d1a2b3c  2026-04-02  Gemini CLI   feat/cache
+  "Add Redis caching for session store to improve latency"
+```
+
+**JSON output:**
+```json
+{
+  "query": "redis cache",
+  "total": 23,
+  "results": [
+    {
+      "checkpoint_id": "a3b2c4d5e6f7",
+      "session_index": 0,
+      "turn_index": 0,
+      "commit_hash": "f3a1b2c9d4e5",
+      "commit_message": "Add Redis session caching",
+      "prompt": "Why did we choose Redis over Memcached...",
+      "prompt_truncated": false,
+      "agent": "Claude Code",
+      "model": "claude-sonnet-4-20250514",
+      "branch": "main",
+      "created_at": "2026-03-15T10:30:00Z",
+      "files_touched": ["cache/redis.go", "cache/memcached.go"],
+      "token_count": 4200,
+      "score": 8
+    }
+  ]
+}
+```
+
+> **Note on `--json` and sensitive output:** The `--json` flag emits full prompt text to stdout. Users piping this to logs or CI systems should be aware. We will add a `[WARNING]` line to stderr when `--json` is used in a non-TTY context: `"Warning: --json output includes full prompt text. Ensure this is not captured in logs."` This is especially relevant since not all agents have guaranteed PII redaction — we should document which agents run redaction at condensation time and which do not, and gate the warning accordingly.
+
+### `entire prompts list`
+
+```
+entire prompts list               # last 20 prompts, newest first
+entire prompts list --limit 50
+entire prompts list --checkpoint abc123   # all prompts for a checkpoint
+entire prompts list --cursor <token>      # cursor-based pagination
+```
+
+Cursor pagination returns a `next_cursor` field in `--json` output, allowing scripts to page through large result sets without re-scanning.
+
+### `entire prompts show <checkpoint-id>`
+
+```
+entire prompts show a3b2c4d5e6f7    # full prompt — reads from git, not index
+entire prompts show abc123           # short prefix accepted
+```
+
+**Prefix ambiguity:** If a short prefix matches multiple checkpoint IDs, the CLI lists the matches and asks the user to disambiguate:
+```
+Ambiguous prefix "abc". Did you mean:
+  abc123def456  2026-03-15  Claude Code  main
+  abcf9e1d2b3a  2026-04-02  Gemini CLI   feat/auth
+```
+
+**Output:**
+```
+Checkpoint:   a3b2c4d5e6f7
+Commit:       f3a1b2c9d4e5 — "Add Redis session caching"
+Session:      0 of 1  (Claude Code · claude-sonnet-4-20250514)
+Branch:       main
+Created:      2026-03-15 10:30:00
+Tokens:       4,200
+
+Prompt (turn 1 of 1):
+─────────────────────────────────────────────────────────────
+Why did we choose Redis over Memcached for the caching layer?
+We need low-latency reads for user sessions. Memcached doesn't
+support clustering. Redis Cluster gives us sharding and
+automatic failover.
+─────────────────────────────────────────────────────────────
+
+Files touched:
+  cache/redis.go
+  cache/redis_test.go
+  config/session.yaml
+
+Run: entire checkpoint explain a3b2c4d5e6f7
+Run: entire checkpoint rewind --to a3b2c4d5e6f7
+```
+
+### `entire prompts index`
+
+```
+entire prompts index --rebuild    # full rebuild from git tree (with progress bar)
+entire prompts index --status     # index health and stats
+entire prompts index --verify     # check for orphaned entries (deleted checkpoints)
+```
+
+---
+
+## 12. Package Structure
+
+```
+cmd/entire/cli/prompts/
+├── prompts.go        # Command group registration
+├── search.go         # entire prompts search
+├── list.go           # entire prompts list
+├── show.go           # entire prompts show
+├── index_cmd.go      # entire prompts index (rebuild/status/verify)
+├── index/
+│   ├── store.go      # Index file I/O (read/append/rebuild), file locking
+│   ├── builder.go    # Walk checkpoint tree and build index entries
+│   ├── rank.go       # Tokenizer, stemmer, scorer, search
+│   └── schema.go     # IndexHeader, PromptEntry types
+└── test/
+    ├── search_test.go
+    ├── rank_test.go        # unit tests for scorer
+    ├── rank_bench_test.go  # Go benchmark tests (testing.B)
+    ├── store_test.go
+    ├── integration_test.go # tests against a real temporary git repo
+    └── testdata/
+        └── search_golden/  # golden file tests for output formatting
+```
+
+---
+
+## 13. Data Flow
+
+### Index update (at condensation — PostCommit hook)
+
+```
+User commits → PostCommit hook fires
+      ↓
+strategy.Condense() → WriteCommitted() writes checkpoint to git
+      ↓
+For each session in checkpoint:
+    Read prompt.txt → split on "---\n\n" → each turn = one PromptEntry
+    Read CommittedMetadata → Agent, Model, TokenCount, Kind, ReviewPrompt
+    Read CommitHash and CommitMessage from git HEAD
+    Truncate prompt to 2000 chars (set PromptTruncated = true if over)
+      ↓
+Acquire file lock on index.lock
+Append new PromptEntry lines to index.ndjson
+Release lock
+```
+
+### Query (at search command)
+
+```
+entire prompts search "redis cache"
+      ↓
+LoadIndex() — read index.ndjson line by line into []PromptEntry
+  If missing → trigger rebuild → reload
+  If version mismatch → rebuild → reload
+      ↓
+ParseQuery("redis cache") → handle quotes, strip special chars
+TokenizeQuery() → stem tokens, remove stop words
+      ↓
+Score each PromptEntry (in-memory, no I/O after load)
+      ↓
+Apply filters (--agent, --branch, --after, --files, --kind)
+Sort by score desc, then CreatedAt desc
+Slice to --limit
+      ↓
+FormatResults() → TTY output or JSON
+```
+
+---
+
+## 14. Edge Cases
+
+| # | Case | Handling |
+|---|---|---|
+| 1 | Missing index | Auto-trigger rebuild with progress bar; warn results may lag until complete |
+| 2 | Corrupt index (parse error) | Delete, rebuild, log: `"Prompt index corrupt, rebuilding..."` |
+| 3 | Index version mismatch | Delete, rebuild automatically |
+| 4 | Large prompts (>2000 chars) | Truncate in index; `entire prompts show` reads full content from git |
+| 5 | Match past truncation point | If query matches but was truncated, result still shown with note: `"(prompt truncated — run 'entire prompts show' for full text)"` |
+| 6 | Multi-turn conversations | Each turn indexed as separate `PromptEntry` with `TurnIndex` |
+| 7 | Agent review prompts | Indexed with `Kind: "agent_review"`, searchable, filterable with `--kind` |
+| 8 | Subagent checkpoints | Each subagent checkpoint indexed with `ParentCheckpointID` and `SubagentDepth` |
+| 9 | Empty prompts | Skipped; count logged in `--status` output |
+| 10 | Non-ASCII / Unicode | NFC normalization before tokenization; `"café"` matches `"cafe"` |
+| 11 | Special chars in query | Stripped before tokenization; not interpreted as regex |
+| 12 | Query too short (<2 chars) | Early return with: `"query too short — enter at least one word"` |
+| 13 | Checkpoint deleted from git | `--verify` identifies orphans; search skips them silently |
+| 14 | `git gc` pruning objects | Same as above — orphan detection handles it |
+| 15 | Concurrent writes (two agents) | File lock with retry backoff; NFS fallback to PID-lock file |
+| 16 | Multiple worktrees | Index path is worktree-local (`<worktree-git-dir>/../.entire/`) |
+| 17 | Decoupled checkpoint repo | `IndexPath()` reads checkpoint store config to resolve location |
+| 18 | Windows path separators | `FilesTouched` entries normalized to forward slashes in index |
+| 19 | Git LFS checkpoints | Detect LFS pointer format in blobs; log warning and skip rather than index raw pointer text |
+| 20 | NFS filesystem | `statfs` detection → PID-lock file fallback instead of `flock` |
+| 21 | Branch rename / rebase | Checkpoint IDs are stable; branch name is metadata only |
+| 22 | Prefix ambiguity in `show` | List matching IDs and prompt user to disambiguate |
+| 23 | `--json` in non-TTY | Warn to stderr: sensitive prompt text in output |
+| 24 | PII across agents | Document which agents run redaction at condensation time; surface in `--status` |
+
+---
+
+## 15. Benchmarks
+
+### Target Performance
+
+| Operation | Target | Notes |
+|---|---|---|
+| Index load — 1K checkpoints | < 100ms | ndjson line-by-line, ~500KB |
+| Index load — 10K checkpoints | < 500ms | ~5MB |
+| Search query — 1K checkpoints | < 20ms | in-memory after load |
+| Search query — 10K checkpoints | < 100ms | in-memory after load |
+| Index append (new checkpoint) | < 50ms | single line append + file lock |
+| Full rebuild — 1K checkpoints | < 10s | git tree walk + blob reads |
+
+### Index Size Estimates
+
+| Checkpoints | Avg prompt (chars) | `.ndjson` size |
+|---|---|---|
+| 1,000 | 500 | ~650 KB |
+| 10,000 | 500 | ~6.5 MB |
+| 100,000 | 500 | ~65 MB |
+
+At 100K+ checkpoints a compaction strategy (archiving old entries) should be introduced. Out of scope for Phase 1.
+
+### On-demand scan vs indexed
+
+| Checkpoints | On-demand scan | Indexed search |
+|---|---|---|
+| 100 | ~500ms | < 10ms |
+| 1,000 | ~5s | < 20ms |
+| 10,000 | ~50s | < 100ms |
+
+On-demand scan is not acceptable at scale. The index is required even for moderate repos.
+
+---
+
+## 16. Testing Plan
+
+- **Unit tests:** scorer, tokenizer, stemmer, tokenize/score edge cases
+- **Benchmark tests (`testing.B`):** `BenchmarkSearch1K`, `BenchmarkSearch10K`, `BenchmarkIndexLoad`
+- **Golden file tests:** CLI output format for search, list, show (so formatting regressions are caught)
+- **Integration tests:** spin up a temporary git repo, write real checkpoint data to it, run search, assert results
+- **Concurrent write test:** two goroutines writing to the same index simultaneously; verify no data loss and no corruption
+- **Edge case tests:** empty prompts, very long prompts, multi-turn, subagent, unicode, special chars, corrupt index
+
+---
+
+## 17. Implementation Plan
+
+### Phase 1 — Core (MVP)
+
+**Week 1:**
+- `index/schema.go` — `IndexHeader`, `PromptEntry` types
+- `index/store.go` — read/append index, file locking, NFS fallback
+- `index/builder.go` — walk checkpoint tree, multi-turn parsing, subagent support
+- PostCommit hook integration
+
+**Week 2:**
+- `index/rank.go` — tokenizer with stemming + unicode normalization, scorer
+- `entire prompts list` command
+- `entire prompts search` command (keyword search, filters)
+- `entire prompts show` command (reads from git, prefix disambiguation)
+
+**Week 3:**
+- `entire prompts index` command (rebuild, status, verify)
+- Cold start auto-rebuild with progress bar
+- `--json` output with PII warning
+- Full test suite including benchmarks and golden files
+
+### Phase 2 — Enhanced
+
+- TF-IDF ranking for better relevance at large scale
+- Cursor-based pagination for scripting use cases
+- Index compaction for 100K+ checkpoint repos
+- Session threading (show full multi-turn conversations in context)
+
+### Phase 3 — Semantic
+
+- Local embedding generation (no API dependency)
+- Hybrid search: keyword BM25 + dense retrieval
+- Cross-repo search (synced index on checkpoint remote)
+- Skills integration — expose prompt search to coding agents
+
+---
+
+## 18. Open Questions
+
+1. **Unified `entire search`?** Should `entire search` eventually become an umbrella that queries both code (external API) and prompts (local index) in one command? Fragmented search commands create UX debt. Worth a brief discussion before this ships to avoid a harder migration later.
+
+2. **Rebuild progress UX:** What progress indicator pattern is already in use in the CLI? Should we use the existing Bubble Tea components or a simple `fmt.Printf` progress line?
+
+3. **Index on the web platform?** Dispatch 0x000C shipped Dispatches on Entire Web. Should the prompt index eventually sync to the web platform for cross-machine search? If yes, the schema should be forward-compatible. No action needed in Phase 1, but worth flagging.
+
+4. **Prompt truncation length?** 2000 chars is an estimate. What is the real p95 prompt length in existing checkpoint data? This affects index size estimates and whether truncation is common enough to warrant a warning in results.
+
+5. **Which agents run PII redaction at condensation?** The proposal assumes PII is already redacted. We should verify this is true for all supported agents (Claude Code, Cursor, Gemini CLI, GitHub Copilot CLI, Factory AI Droid, OpenCode, Codex) before shipping. Any agent without redaction should be flagged in the index entry and surfaced in `--status`.
+
+---
+
+## 19. Acceptance Criteria
+
+- [ ] `entire prompts search <query>` returns relevant prompts in < 100ms for 1K checkpoints and < 500ms for 10K
+- [ ] Stemming is active — `"caching"` matches prompts containing `"cache"`
+- [ ] Multi-turn conversations are indexed per-turn with `TurnIndex`
+- [ ] Agent review prompts (`ReviewPrompt`) are indexed and filterable with `--kind agent_review`
+- [ ] `CommitHash` is present in every index entry and in `--json` output
+- [ ] `entire prompts index --rebuild` works with a progress bar and completes in < 10s for 1K checkpoints
+- [ ] `entire prompts index --status` shows checkpoint count, prompt count, index size, last updated, and orphan count
+- [ ] `entire prompts list` supports cursor-based pagination via `--cursor`
+- [ ] `entire prompts show <prefix>` handles ambiguous prefixes gracefully
+- [ ] Index is updated atomically with file locking; concurrent PostCommit hooks do not corrupt the index
+- [ ] Index path adapts to decoupled checkpoint repository config
+- [ ] Queries with special characters do not panic or return errors
+- [ ] Queries shorter than 2 characters return a clear user-facing error
+- [ ] `--json` in non-TTY context emits a PII warning to stderr
+- [ ] Corrupt or version-mismatched index triggers auto-rebuild with a user-visible notice
+- [ ] Works offline with no internet
+- [ ] No new CGO dependencies
+- [ ] All benchmark targets met (see Section 15)
+- [ ] Golden file tests pass for all output formats
+
+---
+
+## 20. References
+
+1. [Entire Roadmap Blog](https://entire.io/blog/the-entire-cli-how-it-works-and-where-its-headed)
+2. `checkpoint/checkpoint.go` — Checkpoint and Session types
+3. `checkpoint/committed.go` — Committed checkpoint I/O methods
+4. `strategy/common.go` — `ReadAllSessionPromptsFromTree`, `ExtractFirstPrompt`
+5. `strategy/manual_commit_hooks.go` — PostCommit hook (integration point for index update)
+6. `github.com/kljensen/snowball` — Pure Go Porter stemmer (proposed new dependency)
+7. `cmd/entire/cli/prompts/` — New package (to be created)
+
+---
+
+see this now do onething creat ehte comprhensive plan and everything in it md the see the agent.md and wriet eht md the source of truth so we can check always there and implemetn there ok and implemetn everything and write teh clean and rosbut code handling adn test everything
+
+---
+
+dont udpate claude.md create another .md for it and
+
+---
+
+claude.md for you so you can work according to it and dont do anything and remeebr dont push anything ok and test everything edge case and read teh md
+
+---
+
+yeah continue
+
+---
+
+continue
