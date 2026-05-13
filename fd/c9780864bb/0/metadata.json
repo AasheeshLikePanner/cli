@@ -3,57 +3,51 @@
   "checkpoint_id": "fdc9780864bb",
   "session_id": "ses_1e5873eeaffel4o2lTenAPofkc",
   "strategy": "manual-commit",
-  "created_at": "2026-05-13T06:52:27.407021Z",
+  "created_at": "2026-05-13T06:52:54.079212Z",
   "branch": "feature/searchable-prompts",
   "checkpoints_count": 0,
   "files_touched": [
-    "cmd/entire/cli/prompts/index/schema.go",
-    "cmd/entire/cli/prompts/index/rank.go",
-    "cmd/entire/cli/prompts/index/store.go",
+    ".gitignore",
     "cmd/entire/cli/prompts/index/builder.go",
+    "cmd/entire/cli/prompts/index/rank.go",
+    "cmd/entire/cli/prompts/index/schema.go",
+    "cmd/entire/cli/prompts/index/store.go",
     "cmd/entire/cli/prompts/index/update.go",
-    "cmd/entire/cli/prompts/prompts.go",
+    "cmd/entire/cli/prompts/index_cmd.go",
     "cmd/entire/cli/prompts/list.go",
+    "cmd/entire/cli/prompts/prompts.go",
     "cmd/entire/cli/prompts/search.go",
     "cmd/entire/cli/prompts/show.go",
-    "cmd/entire/cli/prompts/index_cmd.go",
     "cmd/entire/cli/root.go",
-    "cmd/entire/cli/strategy/manual_commit_hooks.go"
+    "cmd/entire/cli/strategy/manual_commit_hooks.go",
+    "go.mod",
+    "go.sum"
   ],
   "agent": "OpenCode",
   "model": "minimax-m2.5-free",
   "turn_id": "80023d327f23",
-  "checkpoint_transcript_start": 298,
-  "transcript_lines_at_start": 298,
+  "checkpoint_transcript_start": 353,
+  "transcript_lines_at_start": 353,
   "token_usage": {
-    "input_tokens": 41845,
+    "input_tokens": 398,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 6093696,
-    "output_tokens": 18927,
-    "api_call_count": 52
+    "cache_read_tokens": 133120,
+    "output_tokens": 94,
+    "api_call_count": 2
   },
   "session_metrics": {
     "turn_count": 47
   },
   "initial_attribution": {
-    "calculated_at": "2026-05-13T06:52:27.209562Z",
-    "agent_lines": 244,
-    "agent_removed": 563,
-    "human_added": 3,
+    "calculated_at": "2026-05-13T06:52:53.880947Z",
+    "agent_lines": 3,
+    "agent_removed": 0,
+    "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 247,
-    "total_lines_changed": 810,
-    "agent_percentage": 99.62962962962963,
+    "total_committed": 3,
+    "total_lines_changed": 3,
+    "agent_percentage": 100,
     "metric_version": 2
-  },
-  "prompt_attributions": [
-    {
-      "checkpoint_number": 1,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 0,
-      "agent_lines_removed": 0
-    }
-  ]
+  }
 }
