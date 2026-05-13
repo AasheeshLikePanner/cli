@@ -1,0 +1,36 @@
+{
+  "cli_version": "dev",
+  "checkpoint_id": "fdc9780864bb",
+  "strategy": "manual-commit",
+  "branch": "feature/searchable-prompts",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "cmd/entire/cli/prompts/index/builder.go",
+    "cmd/entire/cli/prompts/index/rank.go",
+    "cmd/entire/cli/prompts/index/schema.go",
+    "cmd/entire/cli/prompts/index/store.go",
+    "cmd/entire/cli/prompts/index/update.go",
+    "cmd/entire/cli/prompts/index_cmd.go",
+    "cmd/entire/cli/prompts/list.go",
+    "cmd/entire/cli/prompts/prompts.go",
+    "cmd/entire/cli/prompts/search.go",
+    "cmd/entire/cli/prompts/show.go",
+    "cmd/entire/cli/root.go",
+    "cmd/entire/cli/strategy/manual_commit_hooks.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/fd/c9780864bb/0/metadata.json",
+      "transcript": "/fd/c9780864bb/0/full.jsonl",
+      "content_hash": "/fd/c9780864bb/0/content_hash.txt",
+      "prompt": "/fd/c9780864bb/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 41845,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6093696,
+    "output_tokens": 18927,
+    "api_call_count": 52
+  }
+}
