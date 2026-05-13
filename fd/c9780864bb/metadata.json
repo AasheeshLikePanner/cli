@@ -5,6 +5,7 @@
   "branch": "feature/searchable-prompts",
   "checkpoints_count": 0,
   "files_touched": [
+    ".gitignore",
     "cmd/entire/cli/prompts/index/builder.go",
     "cmd/entire/cli/prompts/index/rank.go",
     "cmd/entire/cli/prompts/index/schema.go",
@@ -16,21 +17,23 @@
     "cmd/entire/cli/prompts/search.go",
     "cmd/entire/cli/prompts/show.go",
     "cmd/entire/cli/root.go",
-    "cmd/entire/cli/strategy/manual_commit_hooks.go"
+    "cmd/entire/cli/strategy/manual_commit_hooks.go",
+    "go.mod",
+    "go.sum"
   ],
   "sessions": [
     {
       "metadata": "/fd/c9780864bb/0/metadata.json",
       "transcript": "/fd/c9780864bb/0/transcript.jsonl",
       "content_hash": "/fd/c9780864bb/0/transcript_hash.txt",
-      "prompt": "/fd/c9780864bb/0/prompt.txt"
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 41845,
+    "input_tokens": 398,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 6093696,
-    "output_tokens": 18927,
-    "api_call_count": 52
+    "cache_read_tokens": 133120,
+    "output_tokens": 94,
+    "api_call_count": 2
   }
 }
