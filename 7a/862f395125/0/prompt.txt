@@ -388,3 +388,83 @@ Fix in this order, each takes under 30 minutes:
 7. Clarify `--verify` — implement it or document it as follow-up
 
 After those seven things: yes, push it. The core design is genuinely strong and the thinking behind it is clearly explained. These are the last execution gaps between "impressive prototype" and "code I'd be comfortable putting my name on in front of this team."
+
+---
+
+commit the changes and remove hte md file the context we created for first read the code of conduct the contribution and hte claude.md are you code clean and everything we doing the same as they wnat or not
+
+---
+
+now just onething that https://github.com/AasheeshLikePanner/cli push to this fork then i will create the pr for yourself do nothing ok i mean i will create the pr myself ok and you do nothing ok just push
+
+---
+
+lsat commit name the latest i mean
+
+---
+
+onething that i see in our changes we changed .entire/.gitignore  and same .entire/settings.json its like they removed and also we added this .gitignore are we doing something wrong forthis check this one
+
+---
+
+6  
+.entire/.gitignore
+Original file line number	Diff line number	Diff line change
+@@ -1,6 +0,0 @@
+tmp/
+settings.local.json
+metadata/
+current_session
+logs/
+redactors/local/
+ 95 changes: 95 additions & 0 deletions95  
+.entire/prompts/index.ndjson
+ 14 changes: 0 additions & 14 deletions14  
+.entire/settings.json
+Copied!
+Original file line number	Diff line number	Diff line change
+@@ -1,14 +0,0 @@
+{
+  "enabled": true,
+  "local_dev": true,
+  "strategy": "manual-commit",
+  "strategy_options": {
+    "filtered_fetches": true,
+    "checkpoint_remote": {
+      "provider": "github",
+      "repo": "entireio/cli-checkpoints"
+    },
+    "checkpoints_v2": true,
+    "push_v2_refs": true
+  }
+}  see this are the -
+
+---
+
+still same man .entire/.gitignore
+Original file line number	Diff line number	Diff line change
+@@ -1,6 +0,0 @@
+tmp/
+settings.local.json
+metadata/
+current_session
+logs/
+redactors/local/
+ 14 changes: 0 additions & 14 deletions14  
+.entire/settings.json
+Original file line number	Diff line number	Diff line change
+@@ -1,14 +0,0 @@
+{
+  "enabled": true,
+  "local_dev": true,
+  "strategy": "manual-commit",
+  "strategy_options": {
+    "filtered_fetches": true,
+    "checkpoint_remote": {
+      "provider": "github",
+      "repo": "entireio/cli-checkpoints"
+    },
+    "checkpoints_v2": true,
+    "push_v2_refs": true
+  }
+}  see this still same man check and compare with teh main and i think you added the global gitigrnoe
