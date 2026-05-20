@@ -1,0 +1,23 @@
+{
+  "cli_version": "dev",
+  "checkpoint_id": "3e555fd3bee4",
+  "session_id": "ses_1def16494ffeN2BbS1ckDJhgRH",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T11:34:01.972012Z",
+  "branch": "feature/searchable-prompts",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "OpenCode",
+  "model": "minimax-m2.5-free",
+  "turn_id": "0636ab05f48c",
+  "token_usage": {
+    "input_tokens": 3950555,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 28118976,
+    "output_tokens": 57856,
+    "api_call_count": 313
+  },
+  "session_metrics": {
+    "turn_count": 58
+  }
+}
