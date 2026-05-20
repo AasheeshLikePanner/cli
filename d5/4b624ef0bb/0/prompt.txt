@@ -720,3 +720,223 @@ AI
 10 minutes ago
 Low
 The Use string suggests the query is optional ("search [query]"), but Args enforces at least one arg. Consider changing Use to "search " (or relaxing Args) so help text matches actual behavior.  see this adn fix all this and dont commit and anything until you tested buil it andeverything working fine and solved
+
+---
+
+now the pr reviwed here is the thigns Copilot AI
+left a comment
+Pull request overview
+Adds a new entire prompts command group to make checkpoint prompt history locally searchable via a newline-delimited JSON index stored under .entire/prompts/, and wires index updates into the post-commit flow.
+
+Changes:
+
+Introduces entire prompts search|list|show|index CLI commands and registers the new group under the root command.
+Adds a prompts indexing subsystem (schema, storage with locking, ranking/tokenization, and a rebuild “builder”).
+Hooks prompt capture into the manual-commit post-commit condensation path to append new prompt entries.
+Reviewed changes
+Copilot reviewed 16 out of 18 changed files in this pull request and generated 8 comments.
+
+Show a summary per file
+Comments suppressed due to low confidence (5)
+cmd/entire/cli/prompts/index/store.go
+Comment on lines +140 to +145
+func (s *Store) appendEntriesLine(entries []Entry) error {
+	f, err := os.OpenFile(s.indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("opening index for append: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+Appending entries can create a brand-new index file (os.O_CREATE) and write entries without first writing the required NDJSON header line. That will make subsequent Load() calls treat the first entry as the header and either corrupt parsing or silently drop it. Ensure the header is initialized (e.g., if file doesn’t exist or is size 0, call InitIndex()) under the same lock before appending entries.
+
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/index/store.go
+		if lineNum == 0 {
+			if err := json.Unmarshal([]byte(line), &header); err != nil {
+				return nil, fmt.Errorf("%w: header: %w", ErrIndexCorrupt, err)
+			}
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+Medium
+Load() unmarshals the header but never validates or uses it (e.g., CurrentIndexVersion / ErrIndexVersionNewer). This makes the versioning errors dead code and risks mis-parsing incompatible index formats. Validate header.Version and return ErrIndexVersionNewer/ErrIndexCorrupt as appropriate.
+
+This issue also appears on line 193 of the same file.
+
+Suggested changeset 1 (1)
+cmd/entire/cli/prompts/index/store.go
+Original file line number	Diff line number	Diff line change
+ 			if err := json.Unmarshal([]byte(line), &header); err != nil {
+ 				return nil, fmt.Errorf("%w: header: %w", ErrIndexCorrupt, err)
+ 			}
+ 			if header.Version <= 0 {
+ 				return nil, fmt.Errorf("%w: header: invalid version %d", ErrIndexCorrupt, header.Version)
+ 			}
+ 			if header.Version > CurrentIndexVersion {
+ 				return nil, ErrIndexVersionNewer
+ 			}
+ 		} else {
+ 			var entry Entry
+ 			if err := json.Unmarshal([]byte(line), &entry); err != nil {
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/index/builder.go
+Comment on lines +165 to +203
+func (b *Builder) loadCheckpoint(cpID id.CheckpointID) ([]Entry, error) {
+	shard := cpID.String()[:2]
+	rest := cpID.String()[2:]
+	cpDir := filepath.Join(shard, rest, "0")
+
+	ref, err := b.repo.Reference(plumbing.NewBranchReferenceName(paths.MetadataBranchName), true)
+	if err != nil {
+		return nil, fmt.Errorf("getting metadata branch ref: %w", err)
+	}
+
+	commit, err := b.repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("getting commit object: %w", err)
+	}
+
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("getting commit tree: %w", err)
+	}
+
+	cpTree, err := tree.Tree(cpDir)
+	if err != nil {
+		return nil, fmt.Errorf("getting checkpoint tree: %w", err)
+	}
+
+	metaFile, err := cpTree.File("metadata.json")
+	if err != nil {
+		return nil, fmt.Errorf("getting metadata file: %w", err)
+	}
+
+	metaContent, err := metaFile.Contents()
+	if err != nil {
+		return nil, fmt.Errorf("reading metadata: %w", err)
+	}
+
+	var metadata checkpoint.CheckpointSummary
+	if err := json.Unmarshal([]byte(metaContent), &metadata); err != nil {
+		return nil, fmt.Errorf("parsing metadata: %w", err)
+	}
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+loadCheckpoint() appears to be reading the session directory (/0) as if it were the checkpoint root. That means metadata.json will be session-level CommittedMetadata (not CheckpointSummary), metadata.Sessions will be empty, and rebuild will index 0 prompts. Use the checkpoint root directory (cpID.Path()) to read CheckpointSummary, then iterate summary.Sessions and read each session’s prompt/metadata using those paths.
+
+This issue also appears in the following locations of the same file:
+
+line 205
+line 246
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/list.go
+Comment on lines +34 to +40
+func runList(ctx context.Context, w io.Writer, _ io.Writer, limit int) error {
+	store := index.NewStore("")
+
+	if !store.Exists() {
+		fmt.Fprintln(w, "No prompt index found. Run 'entire prompts index --rebuild' first.")
+		return nil
+	}
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+This command constructs the index store with an empty repoRoot, which makes the index path relative to the current working directory (".entire/..."). Running from a subdirectory (or outside a repo) will fail even if an index exists. Resolve the repo root via paths.WorktreeRoot(ctx) (and return a user-friendly error when not in a repo).
+
+This issue also appears on line 56 of the same file.
+
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/show.go
+Comment on lines +30 to +35
+func runShow(ctx context.Context, w io.Writer, cpIDPrefix string) error {
+	store := index.NewStore("")
+	entries, err := store.Load(ctx)
+	if err != nil {
+		return fmt.Errorf("loading index: %w", err)
+	}
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+This command constructs the index store with an empty repoRoot, so it reads ".entire/prompts/index.ndjson" relative to the current directory. That breaks when invoked from a repo subdirectory. Resolve repoRoot with paths.WorktreeRoot(ctx) and use index.NewStore(repoRoot).
+
+This issue also appears on line 67 of the same file.
+
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/index_cmd.go
+Comment on lines +43 to +47
+	if rebuild {
+		fmt.Fprintln(w, "Rebuilding index...")
+		fmt.Fprintln(w, "(Use 'entire prompts search' to trigger automatic rebuild if index is missing)")
+		return nil
+	}
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+The PR description and help text describe entire prompts index --rebuild as rebuilding the index, but this implementation only prints a message and exits without rebuilding. Either implement rebuild (likely by calling the same builder logic used by search’s automatic rebuild) or remove/rename the flag until it’s functional.
+
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/index_cmd.go
+Comment on lines +49 to +55
+	if status {
+		store := index.NewStore("")
+		stats, err := store.Stats(ctx)
+		if err != nil {
+			return fmt.Errorf("getting stats: %w", err)
+		}
+		fmt.Fprintf(w, "Prompt index status\n\n")
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+High
+Status uses index.NewStore("") which makes the index path relative to the current directory. This will report incorrect status unless run from the repo root. Resolve repoRoot with paths.WorktreeRoot(ctx) and create the store from that root before calling Stats().
+
+Copilot uses AI. Check for mistakes.
+@AasheeshLikePanner	Reply...
+cmd/entire/cli/prompts/search.go
+Comment on lines +29 to +39
+	cmd := &cobra.Command{
+		Use:   "search [query]",
+		Short: "Search prompts from checkpoint history",
+		Long: `Search prompts from your checkpoint history by keywords.
+
+Examples:
+  entire prompts search "cache decision"
+  entire prompts search --limit 50 --agent claude
+  entire prompts search --json --branch main`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+Copilot commented 10 minutes ago
+Copilot
+Copilot
+AI
+10 minutes ago
+Low
+The Use string suggests the query is optional ("search [query]"), but Args enforces at least one arg. Consider changing Use to "search " (or relaxing Args) so help text matches actual behavior.  see this adn fix all this and dont commit and anything until you tested buil it andeverything working fine and solved
